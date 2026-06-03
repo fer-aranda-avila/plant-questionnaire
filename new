@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>¿Qué planta eres? 🌿</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-dark: #1a3a2a;
+    --green-mid: #2d6a4f;
+    --green-light: #52b788;
+    --green-pale: #d8f3dc;
+    --cream: #faf8f2;
+    --sand: #f0ebe0;
+    --amber: #e9a830;
+    --brown: #6b4423;
+    --text: #1a2e1f;
+    --text-muted: #4a6358;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+  .bg-blobs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+  .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.18; }
+  .blob-1 { width: 400px; height: 400px; background: var(--green-light); top: -100px; right: -100px; }
+  .blob-2 { width: 300px; height: 300px; background: var(--amber); bottom: 100px; left: -80px; }
+  .blob-3 { width: 200px; height: 200px; background: var(--green-mid); top: 50%; left: 60%; }
+  .app { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; }
+  .screen { display: none; flex-direction: column; min-height: 100vh; padding: 0; animation: fadeIn 0.4s ease; }
+  .screen.active { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* WELCOME */
+  .welcome-top { background: var(--green-dark); padding: 60px 28px 48px; position: relative; overflow: hidden; flex: 0 0 auto; }
+  .welcome-top::after { content: ''; position: absolute; bottom: -30px; left: 0; right: 0; height: 60px; background: var(--cream); border-radius: 50% 50% 0 0 / 100% 100% 0 0; transform: scaleX(1.1); }
+  .welcome-emoji-ring { width: 90px; height: 90px; background: var(--green-mid); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 42px; margin: 0 auto 24px; border: 3px solid var(--green-light); box-shadow: 0 0 0 8px rgba(82,183,136,0.15); }
+  .welcome-top h1 { font-family: 'Fraunces', serif; font-size: 42px; font-weight: 900; color: var(--cream); text-align: center; line-height: 1.1; margin-bottom: 12px; }
+  .welcome-top h1 em { font-style: italic; color: var(--green-light); }
+  .welcome-subtitle { text-align: center; color: rgba(255,255,255,0.65); font-size: 15px; line-height: 1.5; }
+  .welcome-body { padding: 48px 28px 32px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+  .welcome-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .welcome-card { background: white; border-radius: 16px; padding: 16px 14px; border: 1.5px solid var(--sand); text-align: center; }
+  .welcome-card .wc-emoji { font-size: 28px; margin-bottom: 6px; }
+  .welcome-card .wc-name { font-family: 'Fraunces', serif; font-size: 14px; font-weight: 700; color: var(--green-dark); margin-bottom: 3px; }
+  .welcome-card .wc-tag { font-size: 11px; color: var(--text-muted); background: var(--green-pale); border-radius: 20px; padding: 2px 8px; display: inline-block; }
+  .welcome-note { font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 28px; line-height: 1.5; margin-top: 20px; }
+
+  /* BUTTONS */
+  .btn-primary { display: block; width: 100%; background: var(--green-mid); color: white; border: none; border-radius: 20px; padding: 18px 24px; font-family: 'DM Sans', sans-serif; font-size: 17px; font-weight: 600; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, background 0.15s; box-shadow: 0 4px 20px rgba(45,106,79,0.3); letter-spacing: -0.2px; }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:hover { background: var(--green-dark); }
+
+  /* QUESTION */
+  .q-header { padding: 20px 24px 16px; display: flex; align-items: center; gap: 14px; }
+  .q-back { width: 36px; height: 36px; background: white; border: 1.5px solid var(--sand); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; color: var(--text-muted); transition: background 0.15s; flex-shrink: 0; }
+  .q-back:active { background: var(--sand); }
+  .progress-wrap { flex: 1; }
+  .progress-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+  .progress-bar-track { height: 6px; background: var(--sand); border-radius: 10px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: var(--green-light); border-radius: 10px; transition: width 0.4s cubic-bezier(0.4,0,0.2,1); }
+  .q-body { padding: 8px 24px 32px; flex: 1; display: flex; flex-direction: column; }
+  .q-number { font-size: 12px; font-weight: 600; color: var(--green-light); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+  .q-text { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 700; line-height: 1.3; color: var(--green-dark); margin-bottom: 28px; }
+  .options-list { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .option-btn { background: white; border: 2px solid var(--sand); border-radius: 16px; padding: 16px 18px; text-align: left; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--text); transition: all 0.2s; display: flex; align-items: center; gap: 12px; line-height: 1.4; }
+  .option-btn .opt-dot { width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; border: 2px solid var(--sand); background: var(--cream); transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+  .option-btn:hover { border-color: var(--green-light); background: var(--green-pale); }
+  .option-btn.selected { border-color: var(--green-mid); background: linear-gradient(135deg, #e8f5ee, #d8f3dc); }
+  .option-btn.selected .opt-dot { background: var(--green-mid); border-color: var(--green-mid); }
+  .option-btn.selected .opt-dot::after { content: '✓'; font-size: 12px; color: white; font-weight: 700; }
+  .q-footer { padding: 16px 24px 32px; }
+  .btn-next { display: block; width: 100%; background: var(--green-mid); color: white; border: none; border-radius: 20px; padding: 17px; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; opacity: 0.4; pointer-events: none; }
+  .btn-next.enabled { opacity: 1; pointer-events: all; box-shadow: 0 4px 20px rgba(45,106,79,0.3); }
+  .btn-next.enabled:active { transform: scale(0.97); }
+
+  /* LOADING */
+  #screen-loading { align-items: center; justify-content: center; text-align: center; padding: 48px 28px; }
+  .loading-plant { font-size: 72px; animation: bounce 1s infinite; margin-bottom: 24px; }
+  @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+  .loading-text { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; color: var(--green-dark); margin-bottom: 10px; }
+  .loading-sub { font-size: 14px; color: var(--text-muted); }
+  .loading-dots { display: inline-flex; gap: 6px; margin-top: 24px; }
+  .loading-dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--green-light); animation: dot 1.2s infinite; }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dot { 0%,80%,100%{transform:scale(0.7);opacity:0.5} 40%{transform:scale(1);opacity:1} }
+
+  /* RESULT */
+  .result-top { padding: 40px 28px 0; text-align: center; }
+  .result-tag { display: inline-block; background: var(--green-pale); color: var(--green-mid); font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 5px 14px; border-radius: 20px; margin-bottom: 16px; }
+  .result-emoji-big { font-size: 80px; display: block; margin-bottom: 8px; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.1)); animation: plantPop 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes plantPop { from { transform: scale(0.3) rotate(-10deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+  .result-plant-name { font-family: 'Fraunces', serif; font-size: 40px; font-weight: 900; color: var(--green-dark); margin-bottom: 4px; }
+  .result-personality { font-size: 18px; font-weight: 600; color: var(--green-mid); margin-bottom: 24px; }
+  .result-card { background: var(--green-dark); border-radius: 24px; margin: 0 24px 20px; padding: 24px; color: white; position: relative; overflow: hidden; }
+  .result-card::before { content: ''; position: absolute; top: -30px; right: -30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.05); }
+  .result-card-quote { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 400; font-style: italic; line-height: 1.5; color: var(--green-pale); margin-bottom: 16px; position: relative; z-index: 1; }
+  .result-card-desc { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.6; position: relative; z-index: 1; }
+  .result-traits { margin: 0 24px 24px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .trait-pill { background: white; border: 1.5px solid var(--sand); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted); }
+  .result-date-banner { margin: 0 24px 32px; background: var(--amber); border-radius: 16px; padding: 16px 20px; text-align: center; }
+  .result-date-banner p { font-size: 14px; font-weight: 600; color: var(--brown); line-height: 1.5; }
+  .result-footer { padding: 0 24px 40px; }
+  .btn-retry { display: block; width: 100%; background: transparent; border: 2px solid var(--green-mid); color: var(--green-mid); border-radius: 20px; padding: 15px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .btn-retry:active { background: var(--green-pale); }
+
+  /* ERROR SCREEN */
+  #screen-error { align-items: center; justify-content: center; text-align: center; padding: 48px 28px; }
+  .error-emoji { font-size: 56px; margin-bottom: 20px; }
+  .error-title { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; color: var(--green-dark); margin-bottom: 10px; }
+  .error-sub { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 28px; }
+
+  /* ADMIN LOGIN */
+  #screen-admin-login { align-items: center; justify-content: center; padding: 48px 28px; }
+  .admin-login-box { width: 100%; max-width: 320px; text-align: center; }
+  .admin-lock { font-size: 48px; margin-bottom: 16px; }
+  .admin-login-box h2 { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 700; color: var(--green-dark); margin-bottom: 6px; }
+  .admin-login-box p { font-size: 14px; color: var(--text-muted); margin-bottom: 28px; }
+  .admin-input { width: 100%; padding: 14px 18px; border: 2px solid var(--sand); border-radius: 14px; font-family: 'DM Sans', sans-serif; font-size: 16px; background: white; color: var(--text); outline: none; transition: border-color 0.2s; margin-bottom: 12px; letter-spacing: 3px; }
+  .admin-input:focus { border-color: var(--green-light); }
+  .admin-input.error { border-color: #e05c5c; animation: shake 0.3s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+  .admin-error-msg { font-size: 13px; color: #e05c5c; margin-bottom: 12px; min-height: 18px; }
+  .btn-admin-back { background: none; border: none; font-size: 13px; color: var(--text-muted); cursor: pointer; margin-top: 16px; text-decoration: underline; }
+
+  /* ADMIN PANEL */
+  #screen-admin { padding: 0; }
+  .admin-header { background: var(--green-dark); padding: 28px 24px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .admin-header-left h2 { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; color: white; }
+  .admin-header-left p { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 2px; }
+  .admin-exit { background: rgba(255,255,255,0.1); border: none; border-radius: 10px; padding: 8px 14px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: white; cursor: pointer; transition: background 0.15s; }
+  .admin-exit:hover { background: rgba(255,255,255,0.2); }
+  .admin-body { padding: 24px; flex: 1; }
+  .admin-refresh { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .admin-refresh span { font-size: 12px; color: var(--text-muted); }
+  .btn-refresh { background: var(--green-pale); border: none; border-radius: 10px; padding: 7px 14px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--green-mid); font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .btn-refresh:hover { background: #c2ebd0; }
+  .btn-refresh:active { transform: scale(0.96); }
+  .admin-cards { display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; }
+  .admin-plant-card { background: white; border: 1.5px solid var(--sand); border-radius: 18px; padding: 16px 18px; }
+  .admin-plant-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .admin-plant-emoji { font-size: 28px; }
+  .admin-plant-info { flex: 1; }
+  .admin-plant-name { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 700; color: var(--green-dark); }
+  .admin-plant-tag { font-size: 11px; color: var(--text-muted); }
+  .admin-stock-badge { font-size: 13px; font-weight: 700; padding: 4px 12px; border-radius: 20px; }
+  .admin-stock-badge.ok { background: var(--green-pale); color: var(--green-mid); }
+  .admin-stock-badge.low { background: #fff3cd; color: #856404; }
+  .admin-stock-badge.empty { background: #fde8e8; color: #c0392b; }
+  .admin-stock-row { display: flex; align-items: center; gap: 10px; }
+  .admin-stock-bar-track { flex: 1; height: 8px; background: var(--sand); border-radius: 10px; overflow: hidden; }
+  .admin-stock-bar-fill { height: 100%; border-radius: 10px; transition: width 0.4s ease; }
+  .admin-stock-bar-fill.ok { background: var(--green-light); }
+  .admin-stock-bar-fill.low { background: #ffc107; }
+  .admin-stock-bar-fill.empty { background: #e05c5c; }
+  .admin-stock-controls { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .admin-stock-btn { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--sand); background: white; font-size: 18px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; font-weight: 600; line-height: 1; }
+  .admin-stock-btn:hover { border-color: var(--green-light); color: var(--green-mid); background: var(--green-pale); }
+  .admin-stock-btn:active { transform: scale(0.92); }
+  .admin-stock-input { flex: 1; text-align: center; padding: 7px; border: 2px solid var(--sand); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 18px; font-weight: 700; color: var(--green-dark); background: var(--cream); outline: none; transition: border-color 0.2s; }
+  .admin-stock-input:focus { border-color: var(--green-light); }
+  .admin-save-btn { width: 100%; padding: 10px; background: var(--green-mid); color: white; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 10px; transition: all 0.15s; display: none; }
+  .admin-save-btn.visible { display: block; }
+  .admin-save-btn:active { transform: scale(0.97); background: var(--green-dark); }
+  .admin-total { background: var(--green-dark); border-radius: 16px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+  .admin-total-label { font-size: 13px; color: rgba(255,255,255,0.6); }
+  .admin-total-value { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 700; color: white; }
+  .admin-last-update { text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 12px; }
+
+  /* Admin trigger — hidden tap zone bottom-right of welcome */
+  .admin-trigger { position: fixed; bottom: 0; right: 0; width: 60px; height: 60px; z-index: 100; cursor: pointer; opacity: 0; }
+</style>
+</head>
+<body>
+<div class="bg-blobs">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+</div>
+<div class="app">
+
+  <!-- WELCOME -->
+  <div class="screen active" id="screen-welcome">
+    <div class="welcome-top">
+      <div class="welcome-emoji-ring">🌿</div>
+      <h1>¿Qué <em>planta</em> eres?</h1>
+      <p class="welcome-subtitle">10 preguntas para descubrir qué planta encaja con tu personalidad</p>
+    </div>
+    <div class="welcome-body">
+      <div>
+        <div class="welcome-cards">
+          <div class="welcome-card">
+            <div class="wc-emoji">🌸</div>
+            <div class="wc-name">Kalanchoe</div>
+            <div class="wc-tag">Presumido/a</div>
+          </div>
+          <div class="welcome-card">
+            <div class="wc-emoji">🕊️</div>
+            <div class="wc-name">Espatifilo</div>
+            <div class="wc-tag">Hippie</div>
+          </div>
+          <div class="welcome-card">
+            <div class="wc-emoji">🎨</div>
+            <div class="wc-name">Fitonia</div>
+            <div class="wc-tag">Artista</div>
+          </div>
+          <div class="welcome-card">
+            <div class="wc-emoji">🌿</div>
+            <div class="wc-name">Albahaca</div>
+            <div class="wc-tag">Tierno/a</div>
+          </div>
+        </div>
+        <div class="welcome-card" style="margin-bottom:4px;display:flex;align-items:center;gap:14px;text-align:left;">
+          <div style="font-size:28px;">🌵</div>
+          <div>
+            <div class="wc-name">Cactus</div>
+            <div class="wc-tag">Duro/a</div>
+          </div>
+        </div>
+        <p class="welcome-note">Día del Medio Ambiente 🌍<br>Tu planta te espera el <strong>5 de junio</strong></p>
+      </div>
+      <button class="btn-primary" onclick="startQuiz()">Descúbrelo 🌿</button>
+    </div>
+  </div>
+
+  <!-- QUESTION -->
+  <div class="screen" id="screen-question">
+    <div class="q-header">
+      <div class="q-back" onclick="goBack()">←</div>
+      <div class="progress-wrap">
+        <div class="progress-label" id="progress-label">Pregunta 1 de 10</div>
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="progress-bar" style="width:10%"></div>
+        </div>
+      </div>
+    </div>
+    <div class="q-body">
+      <div class="q-number" id="q-number">01</div>
+      <div class="q-text" id="q-text"></div>
+      <div class="options-list" id="options-list"></div>
+    </div>
+    <div class="q-footer">
+      <button class="btn-next" id="btn-next" onclick="nextQuestion()">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div class="screen" id="screen-loading">
+    <div class="loading-plant">🌱</div>
+    <div class="loading-text">Calculando tu planta...</div>
+    <div class="loading-sub">Analizando tus respuestas con máxima seriedad botánica</div>
+    <div class="loading-dots"><span></span><span></span><span></span></div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="screen" id="screen-result">
+    <div class="result-top">
+      <div class="result-tag">Tu planta es...</div>
+      <span class="result-emoji-big" id="result-emoji"></span>
+      <div class="result-plant-name" id="result-name"></div>
+      <div class="result-personality" id="result-personality"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-card-quote" id="result-quote"></div>
+      <div class="result-card-desc" id="result-desc"></div>
+    </div>
+    <div class="result-traits" id="result-traits"></div>
+    <div class="result-date-banner">
+      <p>🌿 Tu planta te estará esperando el <strong>5 de junio</strong> 🌍</p>
+    </div>
+    <div class="result-footer">
+      <button class="btn-retry" onclick="restartQuiz()">Volver a empezar 🔄</button>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div class="screen" id="screen-error">
+    <div class="error-emoji">🌿</div>
+    <div class="error-title">Algo ha fallado</div>
+    <div class="error-sub">No hemos podido conectar con la base de datos.<br>Avisa a alguien del equipo organizador.</div>
+    <button class="btn-primary" style="max-width:280px" onclick="restartQuiz()">Reintentar</button>
+  </div>
+
+  <!-- ADMIN LOGIN -->
+  <div class="screen" id="screen-admin-login">
+    <div class="admin-login-box">
+      <div class="admin-lock">🔒</div>
+      <h2>Panel de administración</h2>
+      <p>Introduce la contraseña para gestionar el stock de plantas</p>
+      <input class="admin-input" id="admin-pwd-input" type="password" placeholder="Contraseña" onkeydown="if(event.key==='Enter')checkAdminPwd()" />
+      <div class="admin-error-msg" id="admin-error-msg"></div>
+      <button class="btn-primary" onclick="checkAdminPwd()">Entrar</button>
+      <button class="btn-admin-back" onclick="showScreen('screen-welcome')">← Volver al test</button>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div class="screen" id="screen-admin">
+    <div class="admin-header">
+      <div class="admin-header-left">
+        <h2>🌿 Stock de plantas</h2>
+        <p>Día del Medio Ambiente · 5 de junio</p>
+      </div>
+      <button class="admin-exit" onclick="showScreen('screen-welcome')">Salir</button>
+    </div>
+    <div class="admin-body">
+      <div class="admin-refresh">
+        <span id="admin-last-update">—</span>
+        <button class="btn-refresh" onclick="loadAdminStock()">↻ Actualizar</button>
+      </div>
+      <div class="admin-cards" id="admin-cards">
+        <!-- filled by JS -->
+      </div>
+      <div class="admin-total">
+        <div class="admin-total-label">Total plantas restantes</div>
+        <div class="admin-total-value" id="admin-total">—</div>
+      </div>
+      <div class="admin-last-update" id="admin-update-time"></div>
+    </div>
+  </div>
+
+  <!-- Hidden admin trigger: tap 5 times on bottom-right corner -->
+  <div class="admin-trigger" id="admin-trigger" onclick="adminTriggerTap()"></div>
+
+</div>
+
+<script>
+// =====================================================================
+// CONFIGURACIÓN SUPABASE — rellena estas dos líneas con tus credenciales
+// =====================================================================
+const SUPABASE_URL  = 'SUPABASE_URL_AQUI';   // ej: https://xxxx.supabase.co
+const SUPABASE_KEY  = 'SUPABASE_ANON_KEY_AQUI'; // anon/public key
+const TABLE_NAME    = 'plantas_stock';
+// =====================================================================
+
+const PLANT_ORDER = ['K', 'E', 'F', 'A', 'C'];
+
+// ─── PLANT DATA: 25 descripciones (planta × personalidad que aterriza) ─
+// Estructura: plants[plantaAsignada].descriptions[personalidadReal]
+// 'own' = es tu planta natural; K/E/F/A/C = fallback con humor fino
+
+const plants = {
+  K: {
+    emoji: '🌸',
+    name: 'Kalanchoe',
+    personality: 'El/la Presumido/a',
+    traits: ['Con estilo', 'Detallista', 'Llamativo/a', 'Seguro/a de sí mismo/a'],
+    descriptions: {
+      own:  { quote: 'No es vanidad, es saber lo que vales. Y vales mucho.', desc: 'Te gusta que las cosas estén bien, que se note el esfuerzo y que todo tenga buena presencia. Como el kalanchoe, siempre estás en flor: colorido/a, llamativo/a y con un punto de "¿a que molo?". No es arrogancia, es estilo.' },
+      E:    { quote: 'Resulta que la naturaleza también tiene glamour.', desc: 'Tú que fluyes con todo, el universo ha decidido darte la planta más vistosa del evento. El kalanchoe brilla con sus flores incluso sin pedírselo, igual que tú iluminas el ambiente sin proponértelo. Algunas cosas simplemente destacan.' },
+      F:    { quote: 'El arte más bonito a veces tiene flores.', desc: 'Tu creatividad se merece algo con color y carácter. El kalanchoe no pasa desapercibido en ningún escritorio: cada flor es un pequeño statement. Tú que ves lo que otros no ven, sabrás apreciar bien esta joyita.' },
+      A:    { quote: 'Alegría en versión floral. Bienvenido/a.', desc: 'Tú que siempre sabes cómo alegrar el día, te ha tocado la planta más festiva del lote. El kalanchoe florece con colores que suben el ánimo solo con mirarlos. Qué bien os vais a llevar.' },
+      C:    { quote: 'Hasta los más duros merecen algo bonito.', desc: 'Sí, te ha tocado la planta más presumida. No te preocupes: el kalanchoe aguanta bien, necesita poca agua y en realidad es bastante autosuficiente. Lo vuestro tiene más en común de lo que parece.' }
+    }
+  },
+  E: {
+    emoji: '🕊️',
+    name: 'Espatifilo',
+    personality: 'El/la Hippie de la oficina',
+    traits: ['Tranquilo/a', 'Espiritual', 'Empático/a', 'Buenas vibras'],
+    descriptions: {
+      own:  { quote: 'La vida fluye. Tú también.', desc: 'Eres de las personas que piensan que todo tiene solución si te lo tomas con calma. Paz interior, buenas energías y un punto de "todo pasa por algo". Como el espatifilo, prosperas en ambientes tranquilos y purificas el aire a tu alrededor.' },
+      K:    { quote: 'La elegancia también puede ser serena.', desc: 'Tú que cuidas tanto los detalles, te ha tocado la planta que cuida el ambiente: el espatifilo purifica el aire y tiene una elegancia discreta que no necesita gritar para hacerse notar. Sofisticado/a a su manera, como tú.' },
+      F:    { quote: 'La calma también es una forma de arte.', desc: 'Tu mundo interior es tan rico que a veces necesitas una planta que haga equilibrio. El espatifilo es pura serenidad visual: blanco, limpio, con presencia. Un contrapunto perfecto para una mente que nunca para.' },
+      A:    { quote: 'La ternura y la paz van de la mano.', desc: 'Tú que contagias alegría, te ha tocado la planta que contagia calma. El espatifilo es de esas presencias que equilibran cualquier espacio. Juntos vais a tener el escritorio más agradable de toda la oficina.' },
+      C:    { quote: 'Un poco de paz nunca le vino mal a nadie.', desc: 'Vale, no eres exactamente de los que hacen retiros de meditación. Pero el espatifilo no te va a pedir nada raro: poca luz, algo de agua y en paz. Básicamente tu filosofía de vida, pero en planta.' }
+    }
+  },
+  F: {
+    emoji: '🎨',
+    name: 'Fitonia',
+    personality: 'El/la Artista Extravagante',
+    traits: ['Creativo/a', 'Original', 'Apasionado/a', 'Fuera de lo común'],
+    descriptions: {
+      own:  { quote: '¿Normal? Qué aburrido.', desc: 'Tienes una manera de ver el mundo que no todo el mundo entiende… pero que todo el mundo admira. Creativo/a, con opiniones propias y siempre con algo interesante que aportar. Como la fitonia, eres un dibujo vivo: lleno/a de patrones únicos.' },
+      K:    { quote: 'El buen gusto reconoce el buen diseño.', desc: 'Tú que sabes distinguir lo ordinario de lo especial, te ha tocado la planta más ilustrada de todas. La fitonia tiene venas dibujadas como si fueran obra de alguien con mucho criterio. Reconocerás la belleza en ella enseguida.' },
+      E:    { quote: 'La naturaleza también hace arte, si sabes mirar.', desc: 'La fitonia es una planta que medita con los ojos: sus patrones son como mandalas vegetales. Tú que aprecias la belleza en las cosas pequeñas, vas a pasarte horas contemplando sus hojas. Y eso está muy bien.' },
+      A:    { quote: 'El arte más divertido siempre tiene color.', desc: 'Tú que le encuentras la gracia a todo, te ha tocado la planta más visualmente entretenida del evento. La fitonia tiene hojas con nervios de colores que parecen hechos con rotulador. Difícil aburrirse teniéndola delante.' },
+      C:    { quote: 'A veces el universo te manda algo inesperado. Acéptalo.', desc: 'No te habías imaginado con una planta de diseño, lo sabemos. Pero la fitonia es más resistente de lo que parece y tiene el mérito de ser interesante sin esfuerzo. Como tú, básicamente.' }
+    }
+  },
+  A: {
+    emoji: '🌿',
+    name: 'Albahaca',
+    personality: 'El/la Tierno/a y Divertido/a',
+    traits: ['Divertido/a', 'Cariñoso/a', 'Cercano/a', 'Imprescindible'],
+    descriptions: {
+      own:  { quote: 'La vida es demasiado corta para no reírse. Y para no condimentar.', desc: 'Eres la persona que alegra el día con una tontería en el momento justo. Cercano/a, cariñoso/a y con un humor que nunca falla. Como la albahaca, eres pequeño/a pero con un aroma que lo llena todo. Imprescindible.' },
+      K:    { quote: 'Hasta lo más sencillo puede tener mucho aroma.', desc: 'Tú que siempre buscas lo mejor, te ha tocado la planta más aromática y más útil. La albahaca no tiene glamour de floristería, pero huele de maravilla y tiene una energía que lo llena todo. A veces lo más sencillo es lo más especial.' },
+      E:    { quote: 'La naturaleza más cercana también tiene su magia.', desc: 'Tú que conectas con todo lo natural, la albahaca es quizás la planta más viva del lote: crece rápido, huele increíble y responde enseguida a los cuidados. Una relación muy recíproca para alguien como tú.' },
+      F:    { quote: 'Lo cotidiano también puede ser una obra de arte.', desc: 'Tú que buscas lo inesperado, hay algo poético en que te toque la planta más humilde. La albahaca es puro instinto: crece con ganas, huele con fuerza y no pide permiso para ser ella misma. Tiene su punto.' },
+      C:    { quote: 'Sin pretensiones, pero imprescindible. Como tú.', desc: 'La albahaca no da drama: creces, hueles bien y listo. Sin florituras. Es exactamente la planta que le tocaría a alguien que no necesita complicarse la vida. Y encima sirve para cocinar. Práctica, como tú.' }
+    }
+  },
+  C: {
+    emoji: '🌵',
+    name: 'Cactus',
+    personality: 'El/la Duro/a de pelar',
+    traits: ['Resistente', 'Honesto/a', 'Directo/a', 'Sorprendente'],
+    descriptions: {
+      own:  { quote: 'No necesito agua ni aplausos. Me basto.', desc: 'Tienes caparazón, sí. Pero quien te conoce de verdad sabe que ahí dentro hay mucho más. Resistente, honesto/a y sin tiempo para tonterías. Como el cactus, no necesitas grandes cuidados para sobrevivir, y cuando floreces, flipan todos.' },
+      K:    { quote: 'Incluso el cactus florece. Y cuando lo hace, es espectacular.', desc: 'Tú que sabes que las apariencias importan, el cactus te va a sorprender: cuando florece —y lo hace— nadie se lo espera y todo el mundo se queda mirando. Como los mejores momentos, más valioso por ser escaso.' },
+      E:    { quote: 'Hasta en el desierto hay vida. Y es bonita.', desc: 'Tú que ves belleza en todo, el cactus tiene la suya propia: sobrevive donde otros no pueden, guarda agua como un tesoro y tiene una paciencia infinita. Hay algo muy zen en eso, si te paras a pensarlo.' },
+      F:    { quote: 'La rareza también crece con espinas.', desc: 'Tú que valoras lo que se sale de lo común, el cactus es la planta más original que existe: formas imposibles, espinas como escultura, y flores que aparecen sin avisar. Extravagante a su manera. Os entenderéis.' },
+      A:    { quote: 'El más duro del vivero, en tus manos tiernas.', desc: 'Tú que le das cariño a todo, vas a ser el/la primero/a en descubrir que el cactus, bien tratado, puede ser encantador. Casi no necesita agua, ocupa poco y tiene una personalidad enorme. Un reto pequeño pero divertido.' }
+    }
+  }
+};
+
+// ─── QUESTIONS ──────────────────────────────────────────────────────────
+const questions = [
+  {
+    text: 'Es viernes por la tarde. ¿Qué estás haciendo?',
+    options: [
+      { text: 'Retocando ese detalle del proyecto que nadie más nota pero que a mí me importa', letter: 'K' },
+      { text: 'Ya he desconectado mentalmente desde el miércoles, sinceramente', letter: 'E' },
+      { text: 'Garabateando ideas en un papel para la semana que viene', letter: 'F' },
+      { text: 'Mandando un meme al grupo del trabajo para cerrar la semana bien', letter: 'A' },
+      { text: 'Terminando lo que tengo y punto. Sin dramas', letter: 'C' }
+    ]
+  },
+  {
+    text: '¿Cómo describes tu forma de vestir?',
+    options: [
+      { text: 'Cuidada. Siempre hay un detalle que marca la diferencia', letter: 'K' },
+      { text: 'Cómoda. Lo importante es sentirse bien, no aparentar', letter: 'E' },
+      { text: 'Rara para algunos, especial para mí', letter: 'F' },
+      { text: 'Lo que me da la risa ese día, básicamente', letter: 'A' },
+      { text: 'Lo que pille. No le doy muchas vueltas', letter: 'C' }
+    ]
+  },
+  {
+    text: 'Hay tensión en el equipo. ¿Cuál es tu papel?',
+    options: [
+      { text: 'Intento que todo quede bien, incluyendo las formas', letter: 'K' },
+      { text: 'Pongo paz. El conflicto me agota', letter: 'E' },
+      { text: 'Propongo algo inesperado que cambia el foco', letter: 'F' },
+      { text: 'Hago una broma en el momento justo para bajar la tensión', letter: 'A' },
+      { text: 'Digo lo que hay que decir aunque no guste', letter: 'C' }
+    ]
+  },
+  {
+    text: '¿Cuál es tu frase favorita (o la que más usas)?',
+    options: [
+      { text: '"Si lo haces, hazlo bien"', letter: 'K' },
+      { text: '"Todo llega"', letter: 'E' },
+      { text: '"¿Y por qué no hacerlo diferente?"', letter: 'F' },
+      { text: '"Ay, que me muero de la risa"', letter: 'A' },
+      { text: '"A mí no me vengas con cuentos"', letter: 'C' }
+    ]
+  },
+  {
+    text: 'Te proponen decorar la zona de trabajo. ¿Qué haces?',
+    options: [
+      { text: 'Me encargo yo. Tengo muy claro cómo debería quedar', letter: 'K' },
+      { text: 'Propongo plantas y luz natural. Siempre', letter: 'E' },
+      { text: 'Traigo algo raro que nadie esperaba y queda genial', letter: 'F' },
+      { text: 'Pongo una foto graciosa que haga reír a la gente', letter: 'A' },
+      { text: 'Me da igual. Con que no sea feo, me vale', letter: 'C' }
+    ]
+  },
+  {
+    text: 'Te dan 100€ para gastar en lo que quieras. ¿Qué haces?',
+    options: [
+      { text: 'Algo que me haga sentir bien y que se note: ropa, cena, lo que sea', letter: 'K' },
+      { text: 'Un retiro, un taller de meditación o algo de bienestar', letter: 'E' },
+      { text: 'Material para ese proyecto creativo que tengo en la cabeza', letter: 'F' },
+      { text: 'Una cena con amigos. Los momentos valen más que las cosas', letter: 'A' },
+      { text: 'Algo práctico. O lo guardo. No lo sé', letter: 'C' }
+    ]
+  },
+  {
+    text: '¿Cómo reaccionas cuando algo no te gusta?',
+    options: [
+      { text: 'Lo digo con elegancia, pero lo digo', letter: 'K' },
+      { text: 'Respiro, dejo pasar y luego ya veremos', letter: 'E' },
+      { text: 'Propongo una alternativa completamente distinta', letter: 'F' },
+      { text: 'Le busco el lado cómico para no volverme loco/a', letter: 'A' },
+      { text: 'Lo digo directamente. Sin rodeos', letter: 'C' }
+    ]
+  },
+  {
+    text: 'Tu canción favorita en la playlist de la oficina sería...',
+    options: [
+      { text: 'Algo que suene bien y que la gente reconozca que tiene gusto', letter: 'K' },
+      { text: 'Algo relajado, acústico, que no moleste al pensar', letter: 'E' },
+      { text: 'Algo que nadie conoce pero que cuando la escuchan se quedan flipando', letter: 'F' },
+      { text: 'Un temazo que ponga a todos de buen humor', letter: 'A' },
+      { text: 'Lo que sea. O silencio. También me vale el silencio', letter: 'C' }
+    ]
+  },
+  {
+    text: 'Alguien te hace un regalo sorpresa. ¿Cómo reaccionas?',
+    options: [
+      { text: 'Me emociono, pero también noto si el detalle está bien elegido', letter: 'K' },
+      { text: 'Me derrito. Los gestos me llegan al alma', letter: 'E' },
+      { text: 'Si es raro o inesperado, me encanta. Si es genérico, lo agradezco', letter: 'F' },
+      { text: 'Me pongo en modo efusivo total. Lo celebro como si no hubiera mañana', letter: 'A' },
+      { text: 'Lo agradezco, pero me cuesta hacer aspavientos', letter: 'C' }
+    ]
+  },
+  {
+    text: '¿Cuál es tu actitud ante los lunes?',
+    options: [
+      { text: 'Si voy bien vestido/a y con el café a punto, el lunes se lleva bien', letter: 'K' },
+      { text: 'El lunes es solo otro día. Todo fluye', letter: 'E' },
+      { text: 'Depende de si tengo algo interesante entre manos', letter: 'F' },
+      { text: 'Lo combato con humor. Algún meme tiene que haber', letter: 'A' },
+      { text: 'El lunes es el lunes. No le tengo ni amor ni odio', letter: 'C' }
+    ]
+  }
+];
+
+// Fallback affinity order per personality (if preferred is exhausted)
+const affinityMap = {
+  K: ['F', 'A', 'E', 'C'],
+  E: ['A', 'F', 'K', 'C'],
+  F: ['K', 'A', 'E', 'C'],
+  A: ['E', 'F', 'K', 'C'],
+  C: ['F', 'K', 'A', 'E']
+};
+
+// ─── STATE ───────────────────────────────────────────────────────────────
+let currentQ = 0;
+let answers = [];
+let selectedOption = null;
+
+// ─── SUPABASE HELPERS ────────────────────────────────────────────────────
+async function sbFetch(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) throw new Error(`Supabase error ${res.status}`);
+  return res.json();
+}
+
+async function getStock() {
+  const rows = await sbFetch(`${TABLE_NAME}?select=planta,stock`);
+  const stock = {};
+  rows.forEach(r => stock[r.planta] = r.stock);
+  return stock;
+}
+
+async function decrementStock(planta) {
+  // Use RPC for atomic decrement to avoid race conditions
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/decrement_stock`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ p_planta: planta })
+  });
+  if (!res.ok) throw new Error(`Decrement error ${res.status}`);
+  return res.json(); // returns new stock value
+}
+
+async function assignPlant(preferred) {
+  const stock = await getStock();
+
+  // Try preferred first
+  if ((stock[preferred] || 0) > 0) {
+    await decrementStock(preferred);
+    return { assigned: preferred, personalidad: preferred };
+  }
+
+  // Try fallbacks in affinity order
+  for (const alt of affinityMap[preferred]) {
+    if ((stock[alt] || 0) > 0) {
+      await decrementStock(alt);
+      return { assigned: alt, personalidad: preferred };
+    }
+  }
+
+  // All exhausted — assign preferred anyway without decrementing
+  return { assigned: preferred, personalidad: preferred, exhausted: true };
+}
+
+// ─── UI ──────────────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function startQuiz() {
+  currentQ = 0;
+  answers = [];
+  renderQuestion();
+  showScreen('screen-question');
+}
+
+function renderQuestion() {
+  const q = questions[currentQ];
+  selectedOption = null;
+  document.getElementById('q-number').textContent = String(currentQ + 1).padStart(2, '0');
+  document.getElementById('q-text').textContent = q.text;
+  document.getElementById('progress-label').textContent = `Pregunta ${currentQ + 1} de ${questions.length}`;
+  document.getElementById('progress-bar').style.width = `${((currentQ + 1) / questions.length) * 100}%`;
+  const list = document.getElementById('options-list');
+  list.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="opt-dot"></span><span>${opt.text}</span>`;
+    btn.onclick = () => selectOption(i, btn);
+    list.appendChild(btn);
+  });
+  const nextBtn = document.getElementById('btn-next');
+  nextBtn.classList.remove('enabled');
+  nextBtn.textContent = currentQ === questions.length - 1 ? 'Ver mi planta 🌿' : 'Siguiente →';
+}
+
+function selectOption(index, btn) {
+  document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedOption = index;
+  document.getElementById('btn-next').classList.add('enabled');
+}
+
+function nextQuestion() {
+  if (selectedOption === null) return;
+  answers.push(questions[currentQ].options[selectedOption].letter);
+  if (currentQ < questions.length - 1) {
+    currentQ++;
+    renderQuestion();
+  } else {
+    showResult();
+  }
+}
+
+function goBack() {
+  if (currentQ === 0) {
+    showScreen('screen-welcome');
+  } else {
+    currentQ--;
+    answers.pop();
+    renderQuestion();
+  }
+}
+
+async function showResult() {
+  showScreen('screen-loading');
+
+  // Tally scores
+  const counts = { K: 0, E: 0, F: 0, A: 0, C: 0 };
+  answers.forEach(l => counts[l]++);
+  let preferred = PLANT_ORDER[0];
+  PLANT_ORDER.forEach(l => { if (counts[l] > counts[preferred]) preferred = l; });
+
+  try {
+    const { assigned, personalidad } = await assignPlant(preferred);
+
+    await new Promise(r => setTimeout(r, 1600));
+
+    const plant = plants[assigned];
+    // Pick the right description: own if it's their natural plant, else use the personalidad key
+    const descKey = assigned === personalidad ? 'own' : personalidad;
+    const content = plant.descriptions[descKey];
+
+    document.getElementById('result-emoji').textContent = plant.emoji;
+    document.getElementById('result-name').textContent = plant.name;
+    document.getElementById('result-personality').textContent = plant.personality;
+    document.getElementById('result-quote').textContent = `"${content.quote}"`;
+    document.getElementById('result-desc').textContent = content.desc;
+
+    const traitsEl = document.getElementById('result-traits');
+    traitsEl.innerHTML = plant.traits.map(t => `<span class="trait-pill">${t}</span>`).join('');
+
+    showScreen('screen-result');
+  } catch (err) {
+    console.error(err);
+    showScreen('screen-error');
+  }
+}
+
+function restartQuiz() {
+  startQuiz();
+}
+
+// ─── ADMIN ────────────────────────────────────────────────────────────────
+const ADMIN_PASSWORD = 'plantas2025'; // 🔑 Cambia esto por tu contraseña
+const PLANT_META = {
+  K: { emoji: '🌸', name: 'Kalanchoe',  tag: 'Presumido/a' },
+  E: { emoji: '🕊️', name: 'Espatifilo', tag: 'Hippie' },
+  F: { emoji: '🎨', name: 'Fitonia',    tag: 'Artista' },
+  A: { emoji: '🌿', name: 'Albahaca',   tag: 'Tierno/a' },
+  C: { emoji: '🌵', name: 'Cactus',     tag: 'Duro/a' }
+};
+
+let adminTapCount = 0;
+let adminTapTimer = null;
+let adminStockCache = {};
+let adminMaxStock = {};
+
+function adminTriggerTap() {
+  adminTapCount++;
+  clearTimeout(adminTapTimer);
+  if (adminTapCount >= 5) {
+    adminTapCount = 0;
+    showScreen('screen-admin-login');
+    document.getElementById('admin-pwd-input').value = '';
+    document.getElementById('admin-error-msg').textContent = '';
+  }
+  adminTapTimer = setTimeout(() => { adminTapCount = 0; }, 2000);
+}
+
+function checkAdminPwd() {
+  const val = document.getElementById('admin-pwd-input').value;
+  const input = document.getElementById('admin-pwd-input');
+  const msg = document.getElementById('admin-error-msg');
+  if (val === ADMIN_PASSWORD) {
+    msg.textContent = '';
+    showScreen('screen-admin');
+    loadAdminStock();
+  } else {
+    input.classList.add('error');
+    msg.textContent = 'Contraseña incorrecta';
+    setTimeout(() => input.classList.remove('error'), 400);
+  }
+}
+
+async function loadAdminStock() {
+  const btn = document.querySelector('.btn-refresh');
+  btn.textContent = '↻ Cargando...';
+  try {
+    const stock = await getStock();
+    adminStockCache = { ...stock };
+    // Track max seen per plant (for the progress bar denominator)
+    PLANT_ORDER.forEach(k => {
+      if (!adminMaxStock[k] || stock[k] > adminMaxStock[k]) adminMaxStock[k] = stock[k];
+    });
+    renderAdminCards(stock);
+    const now = new Date();
+    document.getElementById('admin-last-update').textContent =
+      `Actualizado a las ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+  } catch(e) {
+    document.getElementById('admin-last-update').textContent = 'Error al cargar';
+  }
+  btn.textContent = '↻ Actualizar';
+}
+
+function getStockLevel(current, max) {
+  if (current === 0) return 'empty';
+  if (max > 0 && current / max <= 0.3) return 'low';
+  return 'ok';
+}
+
+function renderAdminCards(stock) {
+  const container = document.getElementById('admin-cards');
+  container.innerHTML = '';
+  let total = 0;
+
+  PLANT_ORDER.forEach(k => {
+    const s = stock[k] ?? 0;
+    const max = adminMaxStock[k] || 10;
+    const pct = max > 0 ? Math.round((s / max) * 100) : 0;
+    const level = getStockLevel(s, max);
+    total += s;
+
+    const card = document.createElement('div');
+    card.className = 'admin-plant-card';
+    card.innerHTML = `
+      <div class="admin-plant-top">
+        <div class="admin-plant-emoji">${PLANT_META[k].emoji}</div>
+        <div class="admin-plant-info">
+          <div class="admin-plant-name">${PLANT_META[k].name}</div>
+          <div class="admin-plant-tag">${PLANT_META[k].tag}</div>
+        </div>
+        <div class="admin-stock-badge ${level}">${s} restantes</div>
+      </div>
+      <div class="admin-stock-row">
+        <div class="admin-stock-bar-track">
+          <div class="admin-stock-bar-fill ${level}" style="width:${pct}%"></div>
+        </div>
+        <span style="font-size:12px;color:var(--text-muted);min-width:36px;text-align:right">${pct}%</span>
+      </div>
+      <div class="admin-stock-controls">
+        <button class="admin-stock-btn" onclick="changeStock('${k}',-1)">−</button>
+        <input class="admin-stock-input" id="input-${k}" type="number" min="0" max="999" value="${s}"
+          onchange="markDirty('${k}')" oninput="markDirty('${k}')" />
+        <button class="admin-stock-btn" onclick="changeStock('${k}',1)">+</button>
+      </div>
+      <button class="admin-save-btn" id="save-${k}" onclick="saveStock('${k}')">Guardar cambio</button>
+    `;
+    container.appendChild(card);
+  });
+
+  document.getElementById('admin-total').textContent = total;
+}
+
+function changeStock(key, delta) {
+  const input = document.getElementById(`input-${key}`);
+  const newVal = Math.max(0, parseInt(input.value || '0') + delta);
+  input.value = newVal;
+  markDirty(key);
+}
+
+function markDirty(key) {
+  document.getElementById(`save-${key}`).classList.add('visible');
+}
+
+async function saveStock(key) {
+  const input = document.getElementById(`input-${key}`);
+  const newVal = parseInt(input.value);
+  const btn = document.getElementById(`save-${key}`);
+  btn.textContent = 'Guardando...';
+  btn.style.opacity = '0.7';
+  try {
+    await sbFetch(`${TABLE_NAME}?planta=eq.${key}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ stock: newVal })
+    });
+    adminStockCache[key] = newVal;
+    if (!adminMaxStock[key] || newVal > adminMaxStock[key]) adminMaxStock[key] = newVal;
+    btn.textContent = '✓ Guardado';
+    btn.style.background = 'var(--green-light)';
+    setTimeout(() => {
+      btn.classList.remove('visible');
+      btn.textContent = 'Guardar cambio';
+      btn.style.background = '';
+      btn.style.opacity = '';
+      loadAdminStock();
+    }, 1200);
+  } catch(e) {
+    btn.textContent = 'Error — reintentar';
+    btn.style.background = '#e05c5c';
+    btn.style.opacity = '1';
+    setTimeout(() => {
+      btn.textContent = 'Guardar cambio';
+      btn.style.background = '';
+    }, 2000);
+  }
+}
+</script>
+</body>
+</html>
